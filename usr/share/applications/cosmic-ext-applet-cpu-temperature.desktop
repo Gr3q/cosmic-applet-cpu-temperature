@@ -1,11 +1,11 @@
 [Desktop Entry]
 Name=Cosmic CPU Temperature Applet
 Type=Application
-Exec=cosmic-applet-cpu-temp
+Exec=cosmic-ext-applet-cpu-temperature
 Terminal=false
 Categories=COSMIC;
 Keywords=COSMIC;Iced;
-Icon=display-symbolic
+Icon=thermometer-symbolic
 StartupNotify=true
 NoDisplay=true
 X-CosmicApplet=true

@@ -1,5 +1,6 @@
 // Mandatory COSMIC imports
 use cosmic::app::Core;
+use cosmic::applet::cosmic_panel_config::PanelAnchor;
 use cosmic::cosmic_config::CosmicConfigEntry;
 use cosmic::iced::futures::SinkExt;
 use cosmic::iced_futures::stream;
@@ -9,7 +10,7 @@ use cosmic::iced::{
     window::Id,
     Task,
     widget::{
-        row, vertical_space
+        column, row, vertical_space
     },
     Alignment,
     Length,
@@ -22,7 +23,7 @@ use once_cell::sync::Lazy;
 
 // Widgets we're going to use
 use cosmic::widget::{
-    autosize, button, container, list_column, settings, toggler, text_input, RectangleTracker
+    autosize, button, container, settings, toggler, text_input, RectangleTracker
 };
 use cosmic::widget::Id as WidgetID;
 use tokio::{sync::watch, time};
@@ -31,7 +32,7 @@ use sysinfo::Components;
 use crate::config::CPUTempAppletConfig;
 
 // Every COSMIC Application and Applet MUST have an ID
-const ID: &str = "com.gr3q.CosmicAppletCPUTemperature";
+const ID: &str = "com.gr3q.CosmicExtAppletCPUTemperature";
 
 static AUTOSIZE_MAIN_ID: Lazy<WidgetID> = Lazy::new(|| WidgetID::new("autosize-main"));
 
@@ -307,6 +308,11 @@ impl cosmic::Application for Window {
     *  opened.
     */
     fn view(&self) -> Element<Self::Message> {
+        let horizontal = matches!(
+            self.core.applet.anchor,
+            PanelAnchor::Top | PanelAnchor::Bottom
+        );
+        
         let mut temp: String = "--".to_string();
         if let Some(temp_value) = self.temp {
             if self.config.fahrenheit {
@@ -331,6 +337,11 @@ impl cosmic::Application for Window {
                 .align_y(Alignment::Center),
             )
         )
+        .padding(if horizontal {
+            [0, self.core.applet.suggested_padding(true)]
+        } else {
+            [self.core.applet.suggested_padding(true), 0]
+        })
         .on_press_down(Message::TogglePopup)
         .class(cosmic::theme::Button::AppletIcon);
 
@@ -348,18 +359,18 @@ impl cosmic::Application for Window {
     // The actual GUI window for the applet. It's a popup.
     fn view_window(&self, _id: Id) -> Element<Self::Message> {
         // A text box to show if we've enabled or disabled anything in the model
-        let content_list = list_column()
-            .padding(5)
-            .spacing(0)
-            .add(settings::item(
+        let content_list =  column![
+            settings::item(
                 "Fahrenheit",
                 toggler(self.config.fahrenheit).on_toggle(Message::Fahrenheit),
-            ))
-            .add(settings::item(
+            ),
+            settings::item(
                 "Refresh Interval (ms)",
                 text_input("1000", self.period_string.clone()).on_input(Message::PeriodString),
-            ))
-        ;
+            )
+        ]
+        .padding(self.core.applet.suggested_padding(true))
+        .spacing(8);
 
         // Set the widget content list as the popup_container for the applet
         self.core.applet.popup_container(container(content_list)).into()

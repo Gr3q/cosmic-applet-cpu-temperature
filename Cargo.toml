@@ -1,5 +1,5 @@
 [package]
-name = "cosmic-applet-cpu-temp"
+name = "cosmic-ext-applet-cpu-temperature"
 version = "0.1.0"
 edition = "2021"
 

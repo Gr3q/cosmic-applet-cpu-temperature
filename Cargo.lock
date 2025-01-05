@@ -995,20 +995,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cosmic-applet-cpu-temp"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "libcosmic",
- "once_cell",
- "sysinfo",
- "tokio",
- "tracing",
- "tracing-log",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "cosmic-client-toolkit"
 version = "0.1.0"
 source = "git+https://github.com/pop-os/cosmic-protocols?rev=d218c76#d218c76b58c7a3b20dd5e7943f93fc306a1b81b8"
@@ -1046,6 +1032,20 @@ source = "git+https://github.com/pop-os/libcosmic#e162c59160c8dd95aa3a85ec7ff203
 dependencies = [
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "cosmic-ext-applet-cpu-temperature"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "libcosmic",
+ "once_cell",
+ "sysinfo",
+ "tokio",
+ "tracing",
+ "tracing-log",
+ "tracing-subscriber",
 ]
 
 [[package]]
