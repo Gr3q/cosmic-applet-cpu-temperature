@@ -10,7 +10,7 @@ use cosmic::iced::{
     window::Id,
     Task,
     widget::{
-        column, row, vertical_space
+        column, row, vertical_space, horizontal_space
     },
     Alignment,
     Length,
@@ -324,7 +324,7 @@ impl cosmic::Application for Window {
             temp.push_str("°");
         }
 
-        let button = button::custom(
+        let button = button::custom(if horizontal {
             Element::from(
                 row!(
                     self.core.applet.text(temp),
@@ -336,7 +336,20 @@ impl cosmic::Application for Window {
                 )
                 .align_y(Alignment::Center),
             )
-        )
+        }
+        else {
+            Element::from(
+                column!(
+                    self.core.applet.text(temp),
+                    container(horizontal_space().width(Length::Fixed(
+                        (self.core.applet.suggested_size(true).0
+                            + 2 * self.core.applet.suggested_padding(true))
+                            as f32
+                    )))
+                )
+                .align_x(Alignment::Center),
+            )
+        })
         .padding(if horizontal {
             [0, self.core.applet.suggested_padding(true)]
         } else {
