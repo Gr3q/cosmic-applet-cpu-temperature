@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=Cosmic CPU Temperature Applet
+Name=CPU Temperature
 Type=Application
 Exec=cosmic-ext-applet-cpu-temperature
 Terminal=false
