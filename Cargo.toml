@@ -11,6 +11,7 @@ sysinfo = "0.33.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing-log = "0.2.0"
+regex = "1.11.1"
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic"

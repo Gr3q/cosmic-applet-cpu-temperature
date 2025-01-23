@@ -1,5 +1,6 @@
-mod window;
 mod config;
+mod sysinfo_utils;
+mod window;
 
 // Import the applet model (Window)
 use crate::window::Window;
@@ -9,7 +10,7 @@ use crate::window::Window;
 fn main() -> cosmic::iced::Result {
     tracing_subscriber::fmt::init();
     let _ = tracing_log::LogTracer::init();
-    
+
     cosmic::applet::run::<Window>(())?;
 
     Ok(())

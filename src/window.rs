@@ -1,37 +1,30 @@
-use std::i32::MAX;
-
 // Mandatory COSMIC imports
 use cosmic::app::Core;
 use cosmic::applet::cosmic_panel_config::PanelAnchor;
 use cosmic::cosmic_config::CosmicConfigEntry;
 use cosmic::iced::futures::SinkExt;
-use cosmic::iced_futures::stream;
 use cosmic::iced::Rectangle;
 use cosmic::iced::{
     platform_specific::shell::commands::popup::{destroy_popup, get_popup},
+    widget::{column, horizontal_space, row, vertical_space},
     window::Id,
-    Task,
-    widget::{
-        column, row, vertical_space, horizontal_space
-    },
-    Alignment,
-    Length,
-    Subscription
+    Alignment, Length, Subscription, Task,
 };
+use cosmic::iced_futures::stream;
 use cosmic::iced_runtime::core::window;
 use cosmic::widget::rectangle_tracker::{rectangle_tracker_subscription, RectangleUpdate};
 use cosmic::Element;
 use once_cell::sync::Lazy;
 
 // Widgets we're going to use
-use cosmic::widget::{
-    autosize, button, container, settings, toggler, text_input, RectangleTracker
-};
 use cosmic::widget::Id as WidgetID;
+use cosmic::widget::{
+    autosize, button, container, settings, text_input, toggler, RectangleTracker,
+};
 use tokio::{sync::watch, time};
-use sysinfo::{Component, Components};
 
 use crate::config::CPUTempAppletConfig;
+use crate::sysinfo_utils::get_temp;
 
 // Every COSMIC Application and Applet MUST have an ID
 const ID: &str = "com.gr3q.CosmicExtAppletCPUTemperature";
@@ -62,8 +55,8 @@ pub struct Window {
 
 #[derive(Clone, Debug)]
 pub enum Message {
-    TogglePopup, // Mandatory for open and close the applet
-    PopupClosed(Id), // Mandatory for the applet to know if it's been closed
+    TogglePopup,      // Mandatory for open and close the applet
+    PopupClosed(Id),  // Mandatory for the applet to know if it's been closed
     Fahrenheit(bool), // Our custom message to update the isEnabled field on the model
     Rectangle(RectangleUpdate<u32>),
     PeriodString(String),
@@ -71,69 +64,17 @@ pub enum Message {
     ConfigChanged(CPUTempAppletConfig),
 }
 
-// In order of priority
-const COMPONENTS: &'static [&'static str] = &[
-    "CPU Temperature",
-    "Tctl",
-    "Package id 0",
-    // TODO: If these are all that's left
-    // we need to gather all of them and
-    // get the max? or average them
-    "Core 0",
-    "Tccd1"
-];
-
-fn get_temp() -> Option<f32> {
-    let mut target: Option<&Component> = None;
-    let components = Components::new_with_refreshed_list();
-    for comp in components.iter() {
-        // Get index of current target
-        let mut target_index: i32 = MAX;
-        if let Some(original_target) = target {
-            target_index = COMPONENTS.iter().position(|&r| r == original_target.label()).unwrap() as i32;
-        }
-
-        // Determine current item position in possible temp components 
-        let label = comp.label();
-        let mut temp_component = false;
-        let mut item_index = 0;
-        for item in COMPONENTS {
-            if *item == label {
-                temp_component = true;
-                break;
-            }
-            item_index = item_index + 1;
-        }
-
-        // if we don't have a temperature component or we have but it is
-        // lower priority, ignore.
-        if !temp_component || item_index > target_index {
-            continue;
-        }
-
-        // Override current target
-        target = Some(comp);
-    }
-
-    if let Some(target_exists) = target {
-        return target_exists.temperature();
-    }
-
-    return None;
-}
-
 fn convert_to_fahrenheit(celsius: f32) -> f32 {
     return (celsius * 1.8) + 32.0;
 }
 
-
 impl cosmic::Application for Window {
     /*
-    *  Executors are a mandatory thing for both COSMIC Applications and Applets.
-    *  They're basically what allows for multi-threaded async operations for things that
-    *  may take too long and block the thread the GUI is running on. This is also where
-    *  Tasks take place.
-    */
+     *  Executors are a mandatory thing for both COSMIC Applications and Applets.
+     *  They're basically what allows for multi-threaded async operations for things that
+     *  may take too long and block the thread the GUI is running on. This is also where
+     *  Tasks take place.
+     */
     type Executor = cosmic::SingleThreadExecutor;
     type Flags = (); // Honestly not sure what these are for.
     type Message = Message; // These are setting the application messages to our Message enum
@@ -155,10 +96,10 @@ impl cosmic::Application for Window {
 
     // Initialize the applet
     /*
-    *  The parameters are the Core and flags (again not sure what to do with these).
-    *  The function returns our model struct initialized and an Option<Task>, in this case
-    *  there is no command so it returns a None value with the type of Task in its place.
-    */
+     *  The parameters are the Core and flags (again not sure what to do with these).
+     *  The function returns our model struct initialized and an Option<Task>, in this case
+     *  there is no command so it returns a None value with the type of Task in its place.
+     */
     fn init(core: Core, _flags: Self::Flags) -> (Self, Task<cosmic::app::Message<Self::Message>>) {
         let (period, _) = watch::channel(1000);
 
@@ -243,8 +184,7 @@ impl cosmic::Application for Window {
                 // Close the popup
                 if let Some(popup_id) = self.popup.take() {
                     return destroy_popup(popup_id);
-                } 
-                else if let Some(main_window_id) = self.core.main_window_id() {
+                } else if let Some(main_window_id) = self.core.main_window_id() {
                     // Create and "open" the popup
                     let new_id = Id::unique();
                     self.popup.replace(new_id);
@@ -254,7 +194,7 @@ impl cosmic::Application for Window {
                         new_id,
                         None,
                         None,
-                        None
+                        None,
                     );
 
                     let Rectangle {
@@ -284,22 +224,22 @@ impl cosmic::Application for Window {
             }
             Message::Fahrenheit(fahrenheit) => {
                 self.config.fahrenheit = fahrenheit;
-                if let Ok(helper) = cosmic::cosmic_config::Config::new(Self::APP_ID, CPUTempAppletConfig::VERSION) {
+                if let Ok(helper) =
+                    cosmic::cosmic_config::Config::new(Self::APP_ID, CPUTempAppletConfig::VERSION)
+                {
                     if let Err(err) = self.config.write_entry(&helper) {
                         tracing::error!(?err, "Error writing config");
                     }
                 }
-            },
-            Message::Rectangle(u) => {
-                match u {
-                    RectangleUpdate::Rectangle(r) => {
-                        self.rectangle = r.1;
-                    }
-                    RectangleUpdate::Init(tracker) => {
-                        self.rectangle_tracker = Some(tracker);
-                    }
-                }
             }
+            Message::Rectangle(u) => match u {
+                RectangleUpdate::Rectangle(r) => {
+                    self.rectangle = r.1;
+                }
+                RectangleUpdate::Init(tracker) => {
+                    self.rectangle_tracker = Some(tracker);
+                }
+            },
             Message::Tick => {
                 self.temp = get_temp();
             }
@@ -308,13 +248,15 @@ impl cosmic::Application for Window {
                     Ok(valid_int) => {
                         if valid_int >= 500 {
                             self.config.refresh_period_milliseconds = valid_int.clone();
-                            if let Ok(helper) = cosmic::cosmic_config::Config::new(Self::APP_ID, CPUTempAppletConfig::VERSION) {
+                            if let Ok(helper) = cosmic::cosmic_config::Config::new(
+                                Self::APP_ID,
+                                CPUTempAppletConfig::VERSION,
+                            ) {
                                 if let Err(err) = self.config.write_entry(&helper) {
                                     tracing::error!(?err, "Error writing config");
                                 }
                             }
-                        }
-                        else {
+                        } else {
                             // TODO: Error handling
                         }
                     }
@@ -327,16 +269,16 @@ impl cosmic::Application for Window {
             }
             Message::ConfigChanged(c) => {
                 // Don't interrupt the tick subscription unless necessary
-                self.refresh_period.send_if_modified(|refresh_period_milliseconds| {
-                    if *refresh_period_milliseconds == c.refresh_period_milliseconds {
-                        false
-                    } 
-                    else {
-                        *refresh_period_milliseconds = c.refresh_period_milliseconds;
-                        self.period_string = c.refresh_period_milliseconds.to_string();
-                        true
-                    }
-                });
+                self.refresh_period
+                    .send_if_modified(|refresh_period_milliseconds| {
+                        if *refresh_period_milliseconds == c.refresh_period_milliseconds {
+                            false
+                        } else {
+                            *refresh_period_milliseconds = c.refresh_period_milliseconds;
+                            self.period_string = c.refresh_period_milliseconds.to_string();
+                            true
+                        }
+                    });
                 self.config = c;
             }
         }
@@ -345,22 +287,21 @@ impl cosmic::Application for Window {
     }
 
     /*
-    *  For an applet, the view function describes what an applet looks like. There's a
-    *  secondary view function (view_window) that shows the widgets in the popup when it's
-    *  opened.
-    */
+     *  For an applet, the view function describes what an applet looks like. There's a
+     *  secondary view function (view_window) that shows the widgets in the popup when it's
+     *  opened.
+     */
     fn view(&self) -> Element<Self::Message> {
         let horizontal = matches!(
             self.core.applet.anchor,
             PanelAnchor::Top | PanelAnchor::Bottom
         );
-        
+
         let mut temp: String = "--".to_string();
         if let Some(temp_value) = self.temp {
             if self.config.fahrenheit {
                 temp = format!("{:.0}", convert_to_fahrenheit(temp_value));
-            }
-            else {
+            } else {
                 temp = format!("{:.0}", temp_value);
             }
             temp.push_str("°");
@@ -378,8 +319,7 @@ impl cosmic::Application for Window {
                 )
                 .align_y(Alignment::Center),
             )
-        }
-        else {
+        } else {
             Element::from(
                 column!(
                     self.core.applet.text(temp),
@@ -414,7 +354,7 @@ impl cosmic::Application for Window {
     // The actual GUI window for the applet. It's a popup.
     fn view_window(&self, _id: Id) -> Element<Self::Message> {
         // A text box to show if we've enabled or disabled anything in the model
-        let content_list =  column![
+        let content_list = column![
             settings::item(
                 "Fahrenheit",
                 toggler(self.config.fahrenheit).on_toggle(Message::Fahrenheit),
@@ -428,7 +368,9 @@ impl cosmic::Application for Window {
         .spacing(8);
 
         // Set the widget content list as the popup_container for the applet
-        self.core.applet.popup_container(container(content_list)).into()
+        self.core
+            .applet
+            .popup_container(container(content_list))
+            .into()
     }
 }
-

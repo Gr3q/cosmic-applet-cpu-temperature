@@ -1041,6 +1041,7 @@ dependencies = [
  "chrono",
  "libcosmic",
  "once_cell",
+ "regex",
  "sysinfo",
  "tokio",
  "tracing",
