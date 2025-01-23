@@ -358,10 +358,10 @@ impl cosmic::Application for Window {
         let mut temp: String = "--".to_string();
         if let Some(temp_value) = self.temp {
             if self.config.fahrenheit {
-                temp = format!("{:.1}", convert_to_fahrenheit(temp_value));
+                temp = format!("{:.0}", convert_to_fahrenheit(temp_value));
             }
             else {
-                temp = temp_value.to_string().clone();
+                temp = format!("{:.0}", temp_value);
             }
             temp.push_str("°");
         }
