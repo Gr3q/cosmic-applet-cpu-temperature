@@ -1,3 +1,5 @@
+use std::i32::MAX;
+
 // Mandatory COSMIC imports
 use cosmic::app::Core;
 use cosmic::applet::cosmic_panel_config::PanelAnchor;
@@ -27,7 +29,7 @@ use cosmic::widget::{
 };
 use cosmic::widget::Id as WidgetID;
 use tokio::{sync::watch, time};
-use sysinfo::Components;
+use sysinfo::{Component, Components};
 
 use crate::config::CPUTempAppletConfig;
 
@@ -69,12 +71,52 @@ pub enum Message {
     ConfigChanged(CPUTempAppletConfig),
 }
 
+// In order of priority
+const COMPONENTS: &'static [&'static str] = &[
+    "CPU Temperature",
+    "Tctl",
+    "Package id 0",
+    // TODO: If these are all that's left
+    // we need to gather all of them and
+    // get the max? or average them
+    "Core 0",
+    "Tccd1"
+];
+
 fn get_temp() -> Option<f32> {
-    for comp in Components::new_with_refreshed_list().iter() {
-        let label = comp.label();
-        if label == "CPU Temperature" {
-            return comp.temperature();
+    let mut target: Option<&Component> = None;
+    let components = Components::new_with_refreshed_list();
+    for comp in components.iter() {
+        // Get index of current target
+        let mut target_index: i32 = MAX;
+        if let Some(original_target) = target {
+            target_index = COMPONENTS.iter().position(|&r| r == original_target.label()).unwrap() as i32;
         }
+
+        // Determine current item position in possible temp components 
+        let label = comp.label();
+        let mut temp_component = false;
+        let mut item_index = 0;
+        for item in COMPONENTS {
+            if *item == label {
+                temp_component = true;
+                break;
+            }
+            item_index = item_index + 1;
+        }
+
+        // if we don't have a temperature component or we have but it is
+        // lower priority, ignore.
+        if !temp_component || item_index > target_index {
+            continue;
+        }
+
+        // Override current target
+        target = Some(comp);
+    }
+
+    if let Some(target_exists) = target {
+        return target_exists.temperature();
     }
 
     return None;
